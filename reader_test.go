@@ -65,6 +65,6 @@ func TestReader(t *testing.T) {
 	testType(t, "test-data/ascii-svr4.cpio", EncodingTypeASCIISVR4)
 	hdr := testType(t, "test-data/ascii-svr4-crc.cpio", EncodingTypeASCIISVR4CRC)
 	intEq(t, "Checksum", 562, hdr.Checksum)
-	testType(t, "test-data/binary.cpio", EncodingTypeBinary)
+	testType(t, "test-data/binary.cpio", EncodingTypeBinaryLE)
 
 }

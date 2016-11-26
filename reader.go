@@ -76,9 +76,9 @@ func (cr *Reader) Next() (*Header, error) {
 
 	switch {
 	case bytes.Equal(cr.buf, []byte{0x71, 0xc7}): // binary, big-endian
-		return cr.nextBinary(binary.BigEndian)
+		return cr.nextBinary(binary.BigEndian, EncodingTypeBinaryBE)
 	case bytes.Equal(cr.buf, []byte{0xc7, 0x71}): // binary, little-endian
-		return cr.nextBinary(binary.LittleEndian)
+		return cr.nextBinary(binary.LittleEndian, EncodingTypeBinaryLE)
 	case bytes.Equal(cr.buf, []byte{0x30, 0x37}): //ascii
 		return cr.nextASCII()
 	default:
@@ -157,7 +157,7 @@ func (cr *Reader) nextName(hdr *Header, p int) (*Header, error) {
 	}
 	var rem int
 	switch hdr.Encoding {
-	case EncodingTypeBinary:
+	case EncodingTypeBinaryLE, EncodingTypeBinaryBE:
 		rem = p % 2
 		p += rem
 		cr.align = int((hdr.Size + int64(rem)) % 2)
@@ -230,7 +230,7 @@ func (cr *Reader) nextASCIISVR4(encoding EncodingType) (*Header, error) {
 	return cr.nextName(hdr, int(p))
 }
 
-func (cr *Reader) nextBinary(order binary.ByteOrder) (*Header, error) {
+func (cr *Reader) nextBinary(order binary.ByteOrder, enc EncodingType) (*Header, error) {
 	var h binaryHeader
 	cr.err = binary.Read(cr.r, order, &h)
 	if cr.err != nil {
@@ -238,7 +238,7 @@ func (cr *Reader) nextBinary(order binary.ByteOrder) (*Header, error) {
 	}
 
 	hdr := &Header{
-		Encoding:  EncodingTypeBinary,
+		Encoding:  enc,
 		DevMinor:  int(h.Dev),
 		Inode:     int(h.Inode),
 		Mode:      int64(h.Mode),

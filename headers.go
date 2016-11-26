@@ -17,7 +17,8 @@ const (
 
 	// EncodingTypeASCIISVR4CRC is also known as "crc" format
 	EncodingTypeASCIISVR4CRC
-	EncodingTypeBinary
+	EncodingTypeBinaryLE
+	EncodingTypeBinaryBE
 )
 
 // Header is a universal cpio header structure
