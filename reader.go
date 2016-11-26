@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"strconv"
@@ -125,30 +126,24 @@ func (cr *Reader) parseInt64(dst *int64, b []byte, base int) {
 }
 
 func (cr *Reader) nextASCIISUSv2() (*Header, error) {
-	var h asciiSUSv2Header
-	cr.err = binary.Read(cr.r, binary.BigEndian, &h)
-	if cr.err != nil {
-		return nil, cr.err
-	}
+	var modTime int64
+	var nameSize int
 	hdr := &Header{Encoding: EncodingTypeASCIISUSv2}
-	cr.parseInt(&hdr.DevMinor, h.Dev[:], 8)
-	cr.parseInt(&hdr.Inode, h.Inode[:], 8)
-	cr.parseInt64(&hdr.Mode, h.Mode[:], 8)
-	cr.parseInt(&hdr.UID, h.UID[:], 8)
-	cr.parseInt(&hdr.GID, h.GID[:], 8)
-	cr.parseInt(&hdr.NLink, h.NLink[:], 8)
-	cr.parseInt(&hdr.RDevMinor, h.RDev[:], 8)
-	var p int64
-	cr.parseInt64(&p, h.ModTime[:], 8)
-	hdr.ModTime = time.Unix(p, 0)
-	cr.parseInt64(&hdr.Size, h.Filesize[:], 8)
-	if cr.err != nil {
-		return nil, cr.err
-	}
+	_, cr.err = fmt.Fscanf(cr.r, "%06o%06o%06o%06o%06o%06o%06o%011o%06o%011o",
+		&hdr.DevMinor,
+		&hdr.Inode,
+		&hdr.Mode,
+		&hdr.UID,
+		&hdr.GID,
+		&hdr.NLink,
+		&hdr.RDevMinor,
+		&modTime,
+		&nameSize,
+		&hdr.Size,
+	)
+	hdr.ModTime = time.Unix(modTime, 0)
 
-	cr.parseInt64(&p, h.Namesize[:], 8)
-
-	return cr.nextName(hdr, int(p))
+	return cr.nextName(hdr, nameSize)
 }
 
 func (cr *Reader) nextName(hdr *Header, p int) (*Header, error) {
@@ -158,9 +153,8 @@ func (cr *Reader) nextName(hdr *Header, p int) (*Header, error) {
 	var rem int
 	switch hdr.Encoding {
 	case EncodingTypeBinaryLE, EncodingTypeBinaryBE:
-		rem = p % 2
-		p += rem
-		cr.align = int((hdr.Size + int64(rem)) % 2)
+		p += p % 2
+		cr.align = int(hdr.Size % 2)
 	case EncodingTypeASCIISVR4, EncodingTypeASCIISVR4CRC:
 		rem = (p + 2) % 4
 		if rem > 0 {
@@ -201,33 +195,27 @@ func (cr *Reader) nextName(hdr *Header, p int) (*Header, error) {
 }
 
 func (cr *Reader) nextASCIISVR4(encoding EncodingType) (*Header, error) {
-	var h asciiSVR4Header
-	cr.err = binary.Read(cr.r, binary.BigEndian, &h)
-	if cr.err != nil {
-		return nil, cr.err
-	}
+	var modTime int64
+	var nameSize int
 	hdr := &Header{Encoding: encoding}
-	cr.parseInt(&hdr.Inode, h.Inode[:], 16)
-	cr.parseInt64(&hdr.Mode, h.Mode[:], 16)
-	cr.parseInt(&hdr.UID, h.UID[:], 16)
-	cr.parseInt(&hdr.GID, h.GID[:], 16)
-	cr.parseInt(&hdr.NLink, h.NLink[:], 16)
-	cr.parseInt(&hdr.DevMajor, h.DevMajor[:], 16)
-	cr.parseInt(&hdr.DevMinor, h.DevMinor[:], 16)
-	cr.parseInt(&hdr.RDevMajor, h.RDevMajor[:], 16)
-	cr.parseInt(&hdr.RDevMinor, h.RDevMinor[:], 16)
-	cr.parseInt(&hdr.Checksum, h.Checksum[:], 16)
-	var p int64
-	cr.parseInt64(&p, h.ModTime[:], 16)
-	hdr.ModTime = time.Unix(p, 0)
-	cr.parseInt64(&hdr.Size, h.Filesize[:], 16)
-	if cr.err != nil {
-		return nil, cr.err
-	}
+	_, cr.err = fmt.Fscanf(cr.r, "%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
+		&hdr.Inode,
+		&hdr.Mode,
+		&hdr.UID,
+		&hdr.GID,
+		&hdr.NLink,
+		&modTime,
+		&hdr.Size,
+		&hdr.DevMajor,
+		&hdr.DevMinor,
+		&hdr.RDevMajor,
+		&hdr.RDevMinor,
+		&nameSize,
+		&hdr.Checksum,
+	)
+	hdr.ModTime = time.Unix(modTime, 0)
 
-	cr.parseInt64(&p, h.Namesize[:], 16)
-
-	return cr.nextName(hdr, int(p))
+	return cr.nextName(hdr, nameSize)
 }
 
 func (cr *Reader) nextBinary(order binary.ByteOrder, enc EncodingType) (*Header, error) {

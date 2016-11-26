@@ -57,32 +57,3 @@ type binaryHeader struct {
 	Namesize uint16
 	Filesize [2]uint16
 }
-
-type asciiSUSv2Header struct {
-	Dev      [6]byte
-	Inode    [6]byte
-	Mode     [6]byte
-	UID      [6]byte
-	GID      [6]byte
-	NLink    [6]byte
-	RDev     [6]byte
-	ModTime  [11]byte
-	Namesize [6]byte
-	Filesize [11]byte
-}
-
-type asciiSVR4Header struct {
-	Inode     [8]byte
-	Mode      [8]byte
-	UID       [8]byte
-	GID       [8]byte
-	NLink     [8]byte
-	ModTime   [8]byte
-	Filesize  [8]byte
-	DevMajor  [8]byte
-	DevMinor  [8]byte
-	RDevMajor [8]byte
-	RDevMinor [8]byte
-	Namesize  [8]byte
-	Checksum  [8]byte
-}
